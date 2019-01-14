@@ -4,20 +4,21 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/mitchellh/go-homedir"
-	"github.com/pkg/errors"
-
+	"github.com/shouji-kazuo/gocal-cli-go/cliutil"
 	"gopkg.in/urfave/cli.v2"
 )
 
-var (
-	defaultTokenPath = ""
+const (
+	argCredentialJSONPath = "credential-json"
+	argTokenJSONPath      = "token-json"
 )
 
+var defaultContextArgKeys = &cliutil.ContextKeys{
+	CredentialJSONPathKey: argCredentialJSONPath,
+	TokenJSONPathKey:      argTokenJSONPath,
+}
+
 func main() {
-	if defaultTokenPath, err := getDefaultTokenPath(); err != nil {
-		// abort? → いやダメでしょ．Specificなパスを指定された時には動いてほしいはずじゃん
-	}
 
 	app := &cli.App{
 		Name:      "gocal-cli-go",
@@ -35,11 +36,4 @@ func main() {
 		fmt.Fprintln(os.Stderr, err.Error())
 	}
 
-}
-
-func getDefaultTokenPath() (string, error) {
-	dir, err := homedir.Dir()
-	if err != nil {
-		return "", errors.Wrap(err, "Users home directory is not found")
-	}
 }

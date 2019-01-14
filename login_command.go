@@ -5,8 +5,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"os"
+	"path/filepath"
+
+	"github.com/shouji-kazuo/gocal-cli-go/cliutil"
 
 	"github.com/pkg/errors"
 
@@ -23,51 +25,43 @@ var loginCommand = &cli.Command{
 	ArgsUsage:   "",
 	Flags: []cli.Flag{
 		&cli.StringFlag{
-			Name:    "credential-json-path",
-			Aliases: []string{"credential", "json", "c"},
+			Name:    argCredentialJSONPath,
+			Aliases: []string{"credential", "cred", "c"},
+			Value:   "",
 			Usage:   "set 'credentials.json' path",
 		},
 		&cli.StringFlag{
-			Name:    "saved-token-path",
+			Name:    argTokenJSONPath,
 			Aliases: []string{"o"},
 			Value:   "",
-			Usage:   "set saved token path",
+			Usage:   "set token json path to save",
 		},
 	},
 	Action: func(ctx *cli.Context) error {
-		if !ctx.IsSet("credential-json-path") {
-			return errors.New("credential-json-path flag is not set.")
+		jsonPaths, err := cliutil.GetJSONPaths(ctx, defaultContextArgKeys)
+		if err != nil {
+			return errors.Wrap(err, "cannot get some json path.")
 		}
-
-		credentialJSONPath := ctx.String("credential-json-path")
-		savedTokenPath := ctx.String("saved-token-path")
-
+		credentialJSONPath := jsonPaths.CredentialJSONPath
+		tokenJSONPath := jsonPaths.TokenJSONPath
 		b, err := ioutil.ReadFile(credentialJSONPath)
 		if err != nil {
-			message := "Unable to read client secret file from path: " + credentialJSONPath
-			log.Fatal(message)
-			return errors.Wrap(err, message)
+			return errors.Wrap(err, "Unable to read client secret file from path: "+credentialJSONPath)
 		}
 
 		// If modifying these scopes, delete your previously saved token.json.
 		config, err := google.ConfigFromJSON(b, calendar.CalendarScope)
 		if err != nil {
-			message := "Unable to parse client secret file to config"
-			log.Fatal(message)
-			return errors.Wrap(err, message)
+			return errors.Wrap(err, "Unable to parse client secret file to config")
 		}
 
 		token, err := getTokenFromWeb(config)
 		if err != nil {
-			message := "Unable to get token from web"
-			log.Fatal(message)
-			return errors.Wrap(err, message)
+			return errors.Wrap(err, "Unable to get token from web")
 		}
 
-		if err = saveToken(savedTokenPath, token); err != nil {
-			message := "Unable to save token to path: " + savedTokenPath
-			log.Fatal(message)
-			return errors.Wrap(err, message)
+		if err = saveToken(tokenJSONPath, token); err != nil {
+			return errors.Wrap(err, "Unable to save token to path: "+tokenJSONPath)
 		}
 
 		return nil
@@ -94,9 +88,24 @@ func getTokenFromWeb(config *oauth2.Config) (*oauth2.Token, error) {
 
 // Saves a token to a file path.
 func saveToken(path string, token *oauth2.Token) error {
-	fmt.Printf("Saving credential file to: %s\n", path)
+	dirPath := filepath.Dir(path)
+	if _, err := os.Stat(dirPath); os.IsNotExist(err) {
+		if err = os.Mkdir(dirPath, 0700); err != nil {
+			return errors.Wrap(err, "cannot create directory to save token.")
+		}
+	}
+	dirInfo, err := os.Stat(dirPath)
+	if err != nil {
+		return errors.Wrap(err, "something wrong during get directory stat.")
+	}
+	if dirInfo.Mode().Perm() != 0700 {
+		if err = os.Chmod(dirPath, 0700); err != nil {
+			return errors.Wrap(err, "cannot change directory permission")
+		}
+	}
 	f, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0600)
 	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
 		return err
 	}
 	defer f.Close()
