@@ -1,9 +1,6 @@
 package main
 
 import (
-	"github.com/pkg/errors"
-	"github.com/shouji-kazuo/gocal-cli-go/cliutil"
-	"github.com/shouji-kazuo/gocal-cli-go/flagutil"
 	cli "gopkg.in/urfave/cli.v2"
 )
 
@@ -59,15 +56,25 @@ var addCommand = &cli.Command{
 		},
 	},
 	Action: func(ctx *cli.Context) error {
-		if err := flagutil.IsAllSpecified(ctx, argCalendarName, argWhen); err != nil {
-			return err
-		}
-		jsonPaths, err := cliutil.GetJSONPaths(ctx, defaultContextArgKeys)
-		if err != nil {
-			return errors.Wrap(err, "cannot get some json path.")
-		}
-		credentialJSONPath := jsonPaths.CredentialJSONPath
-		tokenJSONPath := jsonPaths.TokenJSONPath
+		// if err := cliutil.IsAllFlagSpecified(ctx, argCalendarName, argWhen); err != nil {
+		// 	return err
+		// }
+		// jsonPaths, err := cliutil.GetJSONPaths(ctx, defaultContextArgKeys)
+		// if err != nil {
+		// 	return errors.Wrap(err, "cannot get some json path.")
+		// }
+		// credentialJSONPath := jsonPaths.CredentialJSONPath
+		// tokenJSONPath := jsonPaths.TokenJSONPath
+
+		// credentialBytes, err := ioutil.ReadFile(credentialJSONPath)
+		// if err != nil {
+		// 	return errors.Wrap(err, "Cannot read credential json file.")
+		// }
+		// config, err := google.ConfigFromJSON(credentialBytes, calendar.CalendarReadonlyScope)
+		// if err != nil {
+		// 	return errors.Wrap(err, "Unable to parse client secret file to config.")
+		// }
+		// client := nil
 		return nil
 	},
 }

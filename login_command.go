@@ -1,20 +1,15 @@
 package main
 
 import (
-	"context"
-	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 
 	"github.com/shouji-kazuo/gocal-cli-go/cliutil"
+	"github.com/shouji-kazuo/gocal-cli-go/google-cal"
 
 	"github.com/pkg/errors"
 
-	"golang.org/x/oauth2"
-	"golang.org/x/oauth2/google"
-	calendar "google.golang.org/api/calendar/v3"
 	cli "gopkg.in/urfave/cli.v2"
 )
 
@@ -38,78 +33,78 @@ var loginCommand = &cli.Command{
 		},
 	},
 	Action: func(ctx *cli.Context) error {
-		jsonPaths, err := cliutil.GetJSONPaths(ctx, defaultContextArgKeys)
-		if err != nil {
-			return errors.Wrap(err, "cannot get some json path.")
+		if err := cliutil.IsAllFlagSpecified(ctx, argCredentialJSONPath); err != nil {
+			return errors.Wrap(err, "Unable to parse flags.")
 		}
-		credentialJSONPath := jsonPaths.CredentialJSONPath
-		tokenJSONPath := jsonPaths.TokenJSONPath
-		b, err := ioutil.ReadFile(credentialJSONPath)
+		oauth2Token, err := googlecalendar.Auth(ctx.String(argCredentialJSONPath), os.Stdin, os.Stdout)
 		if err != nil {
-			return errors.Wrap(err, "Unable to read client secret file from path: "+credentialJSONPath)
+			return errors.Wrap(err, "Unable to authorizate.")
 		}
 
-		// If modifying these scopes, delete your previously saved token.json.
-		config, err := google.ConfigFromJSON(b, calendar.CalendarScope)
-		if err != nil {
-			return errors.Wrap(err, "Unable to parse client secret file to config")
+		// tokenファイルを保存するパスの選定．
+		// まず引数 -c に指定されたパスを試す
+		// →それがダメなら，デフォルトパス($HOMEDIR/.gocal-cli-go/)の中を試す
+		// →それがダメなら，カレントディレクトリへの保存を試す
+		// →それもダメなら，諦める
+		var tokenFile *os.File = nil
+		tryOpenInArgPath := func() error {
+			if ctx.IsSet(argTokenJSONPath) {
+				if tokenFile, err = os.OpenFile(ctx.String(argTokenJSONPath), os.O_RDWR|os.O_APPEND, 0600); err != nil {
+					return err
+				}
+				return nil
+			}
+			return errors.New("There is no flag to open file to save token JSON file.")
+		}
+		tryOpenInDefaultPath := func() error {
+			fmt.Fprintln(os.Stderr, "Unable to open file to save oauth JSON in argument.")
+			fmt.Fprintln(os.Stderr, "Try to open file in default path...")
+			defaultTokenPath, err := cliutil.GetDefaultTokenPathToSave()
+			if err != nil {
+				return err
+			}
+			if tokenFile, err = os.OpenFile(defaultTokenPath, os.O_RDWR|os.O_APPEND, 0600); err != nil {
+				return err
+			}
+			return nil
+		}
+		tryOpenInCurrentDir := func() error {
+			fmt.Fprintln(os.Stderr, "Unable to opne file to save oauth JSON in default path.")
+			fmt.Fprintln(os.Stderr, "Try to open file in current directory...")
+			dir, err := filepath.Abs(filepath.Dir(os.Args[0]))
+			if err != nil {
+				return err
+			}
+			if tokenFile, err = os.OpenFile(filepath.Join(dir, "token.json"), os.O_RDWR|os.O_APPEND, 0600); err != nil {
+				return err
+			}
+			return nil
 		}
 
-		token, err := getTokenFromWeb(config)
-		if err != nil {
-			return errors.Wrap(err, "Unable to get token from web")
+		if err = tryFuncSeq([]func() error{tryOpenInArgPath, tryOpenInDefaultPath, tryOpenInCurrentDir}); err != nil {
+			return errors.Wrap(err, "Unable to open all candidates of path to save token.")
 		}
+		defer func() {
+			if tokenFile != nil {
+				tokenFile.Close()
+			}
+		}()
 
-		if err = saveToken(tokenJSONPath, token); err != nil {
-			return errors.Wrap(err, "Unable to save token to path: "+tokenJSONPath)
+		if err = googlecalendar.SaveToken(oauth2Token, tokenFile); err != nil {
+			return errors.Wrap(err, "Unable to save oauth2 token.")
 		}
-
 		return nil
 	},
 }
 
-// Request a token from the web, then returns the retrieved token.
-func getTokenFromWeb(config *oauth2.Config) (*oauth2.Token, error) {
-	authURL := config.AuthCodeURL("state-token", oauth2.AccessTypeOffline)
-	fmt.Printf("Go to the following link in your browser then type the "+
-		"authorization code: \n%v\n", authURL)
-
-	var authCode string
-	if _, err := fmt.Scan(&authCode); err != nil {
-		return nil, err
-	}
-
-	tok, err := config.Exchange(context.TODO(), authCode)
-	if err != nil {
-		return nil, err
-	}
-	return tok, nil
-}
-
-// Saves a token to a file path.
-func saveToken(path string, token *oauth2.Token) error {
-	dirPath := filepath.Dir(path)
-	if _, err := os.Stat(dirPath); os.IsNotExist(err) {
-		if err = os.Mkdir(dirPath, 0700); err != nil {
-			return errors.Wrap(err, "cannot create directory to save token.")
+func tryFuncSeq(funcs []func() error) error {
+	var errorStack error = nil
+	for _, f := range funcs {
+		if err := f(); err != nil {
+			errorStack = errors.Wrap(err, err.Error())
+			continue
 		}
+		return nil
 	}
-	dirInfo, err := os.Stat(dirPath)
-	if err != nil {
-		return errors.Wrap(err, "something wrong during get directory stat.")
-	}
-	if dirInfo.Mode().Perm() != 0700 {
-		if err = os.Chmod(dirPath, 0700); err != nil {
-			return errors.Wrap(err, "cannot change directory permission")
-		}
-	}
-	f, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0600)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		return err
-	}
-	defer f.Close()
-	json.NewEncoder(f).Encode(token)
-
-	return nil
+	return errorStack
 }

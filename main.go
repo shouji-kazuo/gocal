@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/shouji-kazuo/gocal-cli-go/cliutil"
 	"gopkg.in/urfave/cli.v2"
 )
 
@@ -12,11 +11,6 @@ const (
 	argCredentialJSONPath = "credential-json"
 	argTokenJSONPath      = "token-json"
 )
-
-var defaultContextArgKeys = &cliutil.ContextKeys{
-	CredentialJSONPathKey: argCredentialJSONPath,
-	TokenJSONPathKey:      argTokenJSONPath,
-}
 
 func main() {
 

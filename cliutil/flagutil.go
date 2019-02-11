@@ -1,4 +1,4 @@
-package flagutil
+package cliutil
 
 import (
 	"fmt"
@@ -6,7 +6,7 @@ import (
 	cli "gopkg.in/urfave/cli.v2"
 )
 
-func IsAllSpecified(ctx *cli.Context, flagNames ...string) error {
+func IsAllFlagSpecified(ctx *cli.Context, flagNames ...string) error {
 	for _, flagname := range flagNames {
 		if !ctx.IsSet(flagname) {
 			return fmt.Errorf("%s flag is not set.", flagname)
