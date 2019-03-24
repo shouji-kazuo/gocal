@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/pkg/errors"
 	"golang.org/x/oauth2"
@@ -83,6 +84,20 @@ func New(tokenJSONPath string, credentialJSONPath string) (*GoogleCalendar, erro
 	return &GoogleCalendar{
 		client: calendar,
 	}, nil
+}
+
+func (cal *GoogleCalendar) ListCalendars() (*calendar.CalendarList, error) {
+	return cal.client.CalendarList.List().Do()
+}
+
+func (cal *GoogleCalendar) ListEvents(calID string, startDate time.Time, endTime time.Time) ([]*calendar.Event, error) {
+	startDateRFC3339 := startDate.Format(time.RFC3339)
+	endDateRFC3339 := endTime.Format(time.RFC3339)
+	events, err := cal.client.Events.List(calID).TimeMin(startDateRFC3339).TimeMax(endDateRFC3339).Do()
+	if err != nil {
+		return nil, err
+	}
+	return events.Items, nil
 }
 
 func getTokenFromWeb(config *oauth2.Config, fin io.Reader, fout io.Writer) (*oauth2.Token, error) {
