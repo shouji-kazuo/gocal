@@ -2,11 +2,14 @@ package main
 
 import (
 	"fmt"
+	"io"
+	"os"
 	"strings"
 	"time"
 
 	reqflags "github.com/shouji-kazuo/cli-reqflags"
 	"github.com/shouji-kazuo/gocal-cli-go/google-cal"
+	calendar "google.golang.org/api/calendar/v3"
 	cli "gopkg.in/urfave/cli.v2"
 )
 
@@ -116,9 +119,18 @@ var listEventsCommand = &cli.Command{
 			return err
 		}
 		for _, event := range events {
-			fmt.Println(event)
+			showEventAbstract(event, os.Stdout)
 		}
 
 		return nil
 	},
+}
+
+func showEventAbstract(event *calendar.Event, out io.Writer) error {
+	fmt.Fprintf(out, "%s\t%s\n", event.Start.Date, event.Summary)
+	return nil
+}
+
+func showEventDetail(event *calendar.Event, out io.Writer) error {
+	return nil
 }
