@@ -114,7 +114,7 @@ var listEventsCommand = &cli.Command{
 }
 
 func showEventSummary(event *googlecalendar.Event, out io.Writer) error {
-	fmt.Fprintf(out, "%s\t%s\t%s\n", event.Start.Format(timeLayout), event.Summary, event.Location)
+	fmt.Fprintf(out, "%s\t%s\t%s\t%s\n", event.Start.Format(timeLayout), event.End.Format(timeLayout), event.Summary, event.Location)
 	return nil
 }
 
