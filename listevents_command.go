@@ -7,8 +7,8 @@ import (
 	"strings"
 	"time"
 
-	reqflags "github.com/shouji-kazuo/cli-reqflags"
-	"github.com/shouji-kazuo/gocal-cli-go/google-cal"
+	"github.com/shouji-kazuo/cliopts"
+	"github.com/shouji-kazuo/gocal/google-cal"
 	calendar "google.golang.org/api/calendar/v3"
 	cli "gopkg.in/urfave/cli.v2"
 )
@@ -52,42 +52,25 @@ var listEventsCommand = &cli.Command{
 		endDateRaw := ctx.String("end")
 		calendarName := ctx.String("calendar-name")
 
-		onMissingCredentialJSONPath := func() error {
-			fmt.Print("Enter credential.json path: ")
-			for nScanned, err := fmt.Scan(&credentialPath); nScanned != 1 || err != nil; {
-				continue
-			}
-			return nil
-		}
-		onMissingCalendarName := func() error {
-			fmt.Print("Enter calendar name: ")
-			for nScanned, err := fmt.Scan(&calendarName); nScanned != 1 || err != nil; {
-				continue
-			}
-			return nil
-		}
-		onMissingTokenJSONPath := func() error {
-			fmt.Print("Enter token json path: ")
-			for nScanned, err := fmt.Scan(&tokenJSONPath); nScanned != 1 || err != nil; {
-				continue
-			}
-			return nil
-		}
-		onMissingStartDate := func() error {
-			fmt.Print("Enter start date(ex. \"2006/01/02 15:04:05\") (hour,min,sec is optional): ")
-			for nScanned, err := fmt.Scan(&startDateRaw); nScanned != 1 || err != nil; {
-				continue
-			}
-			return nil
-		}
-		err := reqflags.Recover(ctx,
-			map[string]func() error{
-				argCredentialJSONPath: onMissingCredentialJSONPath,
-				argTokenJSONPath:      onMissingTokenJSONPath,
-				"start":               onMissingStartDate,
-				"calendar-name":       onMissingCalendarName,
-			})
-		if err != nil {
+		optEnsure := cliopts.NewEnsure().
+			With(argCredentialJSONPath, cliopts.StdInteract("Enter credential.json path: ").After(func(s string) error {
+				credentialPath = s
+				return nil
+			})).
+			With(argTokenJSONPath, cliopts.StdInteract("Enter start date(ex. \"2006/01/02 15:04:05\") (hour,min,sec is optional): ").After(func(s string) error {
+				tokenJSONPath = s
+				return nil
+			})).
+			With("start", cliopts.StdInteract("Enter token json path: ").After(func(s string) error {
+				tokenJSONPath = s
+				return nil
+			})).
+			With("calendar-name", cliopts.StdInteract("Enter calendar name: ").After(func(s string) error {
+				calendarName = s
+				return nil
+			}))
+
+		if err := optEnsure.Do(ctx); err != nil {
 			return err
 		}
 

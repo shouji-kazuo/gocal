@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"sort"
 
-	reqflags "github.com/shouji-kazuo/cli-reqflags"
-	"github.com/shouji-kazuo/gocal-cli-go/google-cal"
+	"github.com/shouji-kazuo/cliopts"
+	"github.com/shouji-kazuo/gocal/google-cal"
 	cli "gopkg.in/urfave/cli.v2"
 )
 
@@ -29,26 +29,17 @@ var listCalendarsCommand = &cli.Command{
 	Action: func(ctx *cli.Context) error {
 		credentialPath := ctx.String(argCredentialJSONPath)
 		tokenJSONPath := ctx.String(argTokenJSONPath)
-		onMissingCredentialJSONPath := func() error {
-			fmt.Print("Enter credential.json path: ")
-			for nScanned, err := fmt.Scan(&credentialPath); nScanned != 1 || err != nil; {
-				continue
-			}
-			return nil
-		}
-		onMissingTokenJSONPath := func() error {
-			fmt.Print("Enter token json path: ")
-			for nScanned, err := fmt.Scan(&tokenJSONPath); nScanned != 1 || err != nil; {
-				continue
-			}
-			return nil
-		}
-		err := reqflags.Recover(ctx,
-			map[string]func() error{
-				argCredentialJSONPath: onMissingCredentialJSONPath,
-				argTokenJSONPath:      onMissingTokenJSONPath,
-			})
-		if err != nil {
+		optEnsure := cliopts.NewEnsure().
+			With(argCredentialJSONPath, cliopts.StdInteract("Enter credential.json path: ").After(func(s string) error {
+				credentialPath = s
+				return nil
+			})).
+			With(argTokenJSONPath, cliopts.StdInteract("Enter token json path: ").After(func(s string) error {
+				tokenJSONPath = s
+				return nil
+			}))
+
+		if err := optEnsure.Do(ctx); err != nil {
 			return err
 		}
 

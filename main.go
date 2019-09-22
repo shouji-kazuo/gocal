@@ -15,7 +15,7 @@ const (
 func main() {
 
 	app := &cli.App{
-		Name:      "gocal-cli-go",
+		Name:      "gocal",
 		Usage:     "GoogleCalendar CLI in Golang",
 		ArgsUsage: " ",
 		Version:   "v1.0.5",

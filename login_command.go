@@ -5,8 +5,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/shouji-kazuo/gocal-cli-go/cliutil"
-	"github.com/shouji-kazuo/gocal-cli-go/google-cal"
+	"github.com/shouji-kazuo/gocal/cliutil"
+	"github.com/shouji-kazuo/gocal/google-cal"
 
 	"github.com/pkg/errors"
 
@@ -43,7 +43,7 @@ var loginCommand = &cli.Command{
 
 		// tokenファイルを保存するパスの選定．
 		// まず引数 -c に指定されたパスを試す
-		// →それがダメなら，デフォルトパス($HOMEDIR/.gocal-cli-go/)の中を試す
+		// →それがダメなら，デフォルトパス($HOMEDIR/.gocal/)の中を試す
 		// →それがダメなら，カレントディレクトリへの保存を試す
 		// →それもダメなら，諦める
 		var tokenFile *os.File = nil

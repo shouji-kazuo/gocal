@@ -12,7 +12,7 @@ func GetDefaultTokenPathToSave() (string, error) {
 	if err != nil {
 		return "", errors.Wrap(err, "Users home directory is not found")
 	}
-	return filepath.Join(dir, ".gocal-cli-go", "token.json"), nil
+	return filepath.Join(dir, ".gocal", "token.json"), nil
 }
 
 func GetDefaultCredentialTokenPath() (string, error) {
@@ -20,5 +20,5 @@ func GetDefaultCredentialTokenPath() (string, error) {
 	if err != nil {
 		return "", errors.Wrap(err, "Users home directory is not found")
 	}
-	return filepath.Join(dir, ".gocal-cli-go", "credential.json"), nil
+	return filepath.Join(dir, ".gocal", "credential.json"), nil
 }
