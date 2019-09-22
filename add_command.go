@@ -1,21 +1,28 @@
 package main
 
 import (
+	"fmt"
+	"time"
+
+	"github.com/shouji-kazuo/cliopts"
+	"github.com/shouji-kazuo/gocal/google-cal"
 	cli "gopkg.in/urfave/cli.v2"
 )
 
 const (
 	argCalendarName = "calendar"
 	argTitle        = "title"
-	argDescription  = "description"
-	argWhen         = "when"
-	argDuration     = "duration"
+	argStart        = "start"
+	argLocation     = "location"
+	argEnd          = "end"
+
+	timeLayout = "2006/01/02 15:04:05"
 )
 
 var addCommand = &cli.Command{
 	Name:        "add",
 	Usage:       "",
-	Description: "add schedule",
+	Description: "add event",
 	ArgsUsage:   "",
 	Flags: []cli.Flag{
 		&cli.StringFlag{
@@ -31,50 +38,99 @@ var addCommand = &cli.Command{
 		},
 		&cli.StringFlag{
 			Name:    argCalendarName,
-			Aliases: []string{"c"},
+			Aliases: []string{"cal", "cn"},
 			Usage:   "set calendar name",
 		},
 		&cli.StringFlag{
 			Name:    argTitle,
 			Aliases: []string{"t"},
-			Usage:   "set schedule title",
+			Usage:   "set event title",
 		},
 		&cli.StringFlag{
-			Name:    argDescription,
-			Aliases: []string{"de", "desc", "dc"},
-			Usage:   "set schedule description",
+			Name:    argLocation,
+			Aliases: []string{"l"},
+			Usage:   "set event location",
 		},
 		&cli.StringFlag{
-			Name:    argWhen,
-			Aliases: []string{"w", "wh"},
-			Usage:   "set schedule added date in 'yyyy/MM/dd hh:mm:ss'", //TODO タイムゾーン
+			Name:    argStart,
+			Aliases: []string{"s"},
+			Usage:   "set schedule start added date in 'yyyy/MM/dd hh:mm:ss'",
 		},
-		&cli.IntFlag{
-			Name:    argDuration,
-			Aliases: []string{"du", "dr"},
-			Usage:   "set schedule duration in minites",
+		&cli.StringFlag{
+			Name:    argEnd,
+			Aliases: []string{"e"},
+			Usage:   "set schedule end added date in 'yyyy/MM/dd hh:mm:ss'",
 		},
 	},
 	Action: func(ctx *cli.Context) error {
-		// if err := cliutil.IsAllFlagSpecified(ctx, argCalendarName, argWhen); err != nil {
-		// 	return err
-		// }
-		// jsonPaths, err := cliutil.GetJSONPaths(ctx, defaultContextArgKeys)
-		// if err != nil {
-		// 	return errors.Wrap(err, "cannot get some json path.")
-		// }
-		// credentialJSONPath := jsonPaths.CredentialJSONPath
-		// tokenJSONPath := jsonPaths.TokenJSONPath
 
-		// credentialBytes, err := ioutil.ReadFile(credentialJSONPath)
-		// if err != nil {
-		// 	return errors.Wrap(err, "Cannot read credential json file.")
-		// }
-		// config, err := google.ConfigFromJSON(credentialBytes, calendar.CalendarReadonlyScope)
-		// if err != nil {
-		// 	return errors.Wrap(err, "Unable to parse client secret file to config.")
-		// }
-		// client := nil
+		credentialPath := ctx.String(argCredentialJSONPath)
+		tokenJSONPath := ctx.String(argTokenJSONPath)
+		calendarName := ctx.String(argCalendarName)
+		eventTitle := ctx.String(argTitle)
+		eventLocation := ctx.String(argLocation)
+		startTimeStr := ctx.String(argStart)
+		endTimeStr := ctx.String(argEnd)
+
+		optEnsure := cliopts.NewEnsure().
+			With(argCredentialJSONPath, cliopts.StdInteract("Enter credential.json path: ").After(func(s string) error {
+				credentialPath = s
+				return nil
+			})).
+			With(argTokenJSONPath, cliopts.StdInteract("Enter token json path: ").After(func(s string) error {
+				tokenJSONPath = s
+				return nil
+			})).
+			With(argCalendarName, cliopts.StdInteract("Enter calendar name: ").After(func(s string) error {
+				calendarName = s
+				return nil
+			})).
+			With(argTitle, cliopts.StdInteract("Enter event title: ").After(func(s string) error {
+				eventTitle = s
+				return nil
+			})).
+			With(argStart, cliopts.StdInteract("Enter event start time in 'yyyy/MM/dd hh:mm:ss': ").After(func(s string) error {
+				startTimeStr = s
+				return nil
+			})).
+			With(argEnd, cliopts.StdInteract("Enter event end time in 'yyyy/MM/dd hh:mm:ss': ").After(func(s string) error {
+				endTimeStr = s
+				return nil
+			})).
+			With(argLocation, cliopts.StdInteract("Enter event location: ").After(func(s string) error {
+				eventLocation = s
+				return nil
+			}))
+
+		if err := optEnsure.Do(ctx); err != nil {
+			return err
+		}
+
+		cal, err := googlecalendar.New(tokenJSONPath, credentialPath)
+		if err != nil {
+			return err
+		}
+
+		startTime, err := time.Parse(timeLayout, startTimeStr)
+		if err != nil {
+			return err
+		}
+
+		endTime, err := time.Parse(timeLayout, endTimeStr)
+		if err != nil {
+			return err
+		}
+
+		event := googlecalendar.CreateEvent(eventTitle, eventLocation, startTime, endTime)
+		added, err := cal.AddEvents(calendarName, event)
+		if err != nil {
+			return err
+		}
+
+		for _, addedEvent := range added {
+			fmt.Println(addedEvent)
+		}
+
 		return nil
 	},
 }

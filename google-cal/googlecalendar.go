@@ -90,14 +90,75 @@ func (cal *GoogleCalendar) ListCalendars() (*calendar.CalendarList, error) {
 	return cal.client.CalendarList.List().Do()
 }
 
-func (cal *GoogleCalendar) ListEvents(calID string, startDate time.Time, endTime time.Time) ([]*calendar.Event, error) {
+func (cal *GoogleCalendar) ListEvents(calID string, startDate time.Time, endTime time.Time) ([]*Event, error) {
 	startDateRFC3339 := startDate.Format(time.RFC3339)
 	endDateRFC3339 := endTime.Format(time.RFC3339)
-	events, err := cal.client.Events.List(calID).TimeMin(startDateRFC3339).TimeMax(endDateRFC3339).Do()
+	gEvents, err := cal.client.Events.List(calID).TimeMin(startDateRFC3339).TimeMax(endDateRFC3339).Do()
 	if err != nil {
 		return nil, err
 	}
-	return events.Items, nil
+
+	events := make([]*Event, 0, len(gEvents.Items))
+	for _, event := range gEvents.Items {
+		start, err := time.Parse(time.RFC3339, event.Start.DateTime)
+		if err != nil {
+			return nil, err
+		}
+		end, err := time.Parse(time.RFC3339, event.End.DateTime)
+		if err != nil {
+			return nil, err
+		}
+		events = append(events, &Event{
+			Summary:  event.Summary,
+			Location: event.Location,
+			Start:    start,
+			End:      end,
+		})
+	}
+	return events, nil
+}
+
+func (cal *GoogleCalendar) AddEvents(calID string, events ...*Event) ([]*calendar.Event, error) {
+	addedEvents := make([]*calendar.Event, 0, len(events))
+	for _, event := range events {
+		added, err := cal.client.Events.Insert(calID, event.toGoogleCalendarEvent()).Do()
+		if err != nil {
+			return addedEvents, err
+		}
+		addedEvents = append(addedEvents, added)
+	}
+	return addedEvents, nil
+}
+
+type Event struct {
+	Summary  string
+	Location string
+	Start    time.Time
+	End      time.Time
+}
+
+func (event *Event) toGoogleCalendarEvent() *calendar.Event {
+	return &calendar.Event{
+		Summary:  event.Summary,
+		Location: event.Location,
+		Start: &calendar.EventDateTime{
+			DateTime: event.Start.Format(time.RFC3339),
+			TimeZone: event.Start.Location().String(),
+		},
+		End: &calendar.EventDateTime{
+			DateTime: event.End.Format(time.RFC3339),
+			TimeZone: event.End.Location().String(),
+		},
+	}
+}
+
+func CreateEvent(title string, location string, start time.Time, end time.Time) *Event {
+	return &Event{
+		Summary:  title,
+		Location: location,
+		Start:    start,
+		End:      end,
+	}
 }
 
 func getTokenFromWeb(config *oauth2.Config, fin io.Reader, fout io.Writer) (*oauth2.Token, error) {

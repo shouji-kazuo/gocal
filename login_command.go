@@ -33,8 +33,13 @@ var loginCommand = &cli.Command{
 		},
 	},
 	Action: func(ctx *cli.Context) error {
-		if err := cliutil.IsAllFlagSpecified(ctx, argCredentialJSONPath); err != nil {
-			return errors.Wrap(err, "Unable to parse flags.")
+
+		if !ctx.IsSet(argCredentialJSONPath) {
+			return errors.New("Unable to parse \"credential\" flag.\n" +
+				"1.please create google cloud project from https://console.developers.google.com \n" +
+				"2.enable Google Calendar API from https://console.developers.google.com/apis/library \n" +
+				"3.get OAuth client ID as JSON file from https://console.developers.google.com/apis/credentials \n" +
+				"4.specify credential file path to \"credential\" flag.")
 		}
 		oauth2Token, err := googlecalendar.Auth(ctx.String(argCredentialJSONPath), os.Stdin, os.Stdout)
 		if err != nil {
@@ -49,7 +54,7 @@ var loginCommand = &cli.Command{
 		var tokenFile *os.File = nil
 		tryOpenInArgPath := func() error {
 			if ctx.IsSet(argTokenJSONPath) {
-				if tokenFile, err = os.OpenFile(ctx.String(argTokenJSONPath), os.O_RDWR|os.O_APPEND, 0600); err != nil {
+				if tokenFile, err = os.OpenFile(ctx.String(argTokenJSONPath), os.O_RDWR|os.O_CREATE, 0600); err != nil {
 					return err
 				}
 				return nil
@@ -63,7 +68,7 @@ var loginCommand = &cli.Command{
 			if err != nil {
 				return err
 			}
-			if tokenFile, err = os.OpenFile(defaultTokenPath, os.O_RDWR|os.O_APPEND, 0600); err != nil {
+			if tokenFile, err = os.OpenFile(defaultTokenPath, os.O_RDWR|os.O_CREATE, 0600); err != nil {
 				return err
 			}
 			return nil
@@ -75,7 +80,7 @@ var loginCommand = &cli.Command{
 			if err != nil {
 				return err
 			}
-			if tokenFile, err = os.OpenFile(filepath.Join(dir, "token.json"), os.O_RDWR|os.O_APPEND, 0600); err != nil {
+			if tokenFile, err = os.OpenFile(filepath.Join(dir, "token.json"), os.O_RDWR|os.O_CREATE, 0600); err != nil {
 				return err
 			}
 			return nil

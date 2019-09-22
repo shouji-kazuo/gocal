@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"sort"
 	"strings"
 	"time"
 
@@ -101,16 +102,19 @@ var listEventsCommand = &cli.Command{
 		if err != nil {
 			return err
 		}
+		sort.Slice(events, func(i, j int) bool {
+			return events[i].Start.Before(events[j].Start)
+		})
 		for _, event := range events {
-			showEventAbstract(event, os.Stdout)
+			showEventSummary(event, os.Stdout)
 		}
 
 		return nil
 	},
 }
 
-func showEventAbstract(event *calendar.Event, out io.Writer) error {
-	fmt.Fprintf(out, "%s\t%s\n", event.Start.Date, event.Summary)
+func showEventSummary(event *googlecalendar.Event, out io.Writer) error {
+	fmt.Fprintf(out, "%s\t%s\t%s\n", event.Start.Format(timeLayout), event.Summary, event.Location)
 	return nil
 }
 
