@@ -1,3 +1,4 @@
 gocal
+build/
 *.json
 
