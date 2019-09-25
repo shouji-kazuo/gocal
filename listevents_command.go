@@ -3,6 +3,7 @@ package main
 import (
 	"html/template"
 	"os"
+	"path/filepath"
 	"sort"
 	"strings"
 	"time"
@@ -10,7 +11,6 @@ import (
 	"github.com/shouji-kazuo/cliopts"
 	"github.com/shouji-kazuo/gocal/google-cal"
 	cli "gopkg.in/urfave/cli.v2"
-	
 )
 
 var listEventsCommand = &cli.Command{
@@ -43,6 +43,11 @@ var listEventsCommand = &cli.Command{
 			Name:    "end",
 			Aliases: []string{"e"},
 			Usage:   "set end date(ex. \"2006/01/02 15:04:05\") json path to save. hour, min, sec is optional",
+		},
+		&cli.StringFlag{
+			Name:  "template",
+			Usage: "set event list output template file path.",
+			Value: "./daily_event_list.tmpl",
 		},
 	},
 	Action: func(ctx *cli.Context) error {
@@ -95,7 +100,7 @@ var listEventsCommand = &cli.Command{
 				if err != nil {
 					return err
 				}
-			} 
+			}
 		}
 		events, err := cal.ListEvents(calendarName, startDate, endDate)
 		if err != nil {
@@ -108,12 +113,14 @@ var listEventsCommand = &cli.Command{
 		templateDataMap := map[string][]*googlecalendar.Event{
 			"Events": events,
 		}
-		eventOutputTemplate, err := template.New("event_summary.tpl").Funcs(template.FuncMap{
+
+		templateFilePath := ctx.String("template")
+		eventOutputTemplate, err := template.New(filepath.Base(templateFilePath)).Funcs(template.FuncMap{
 			"formatDate": func(date time.Time, format string) string {
 				return date.Format(format)
 			},
-		}).ParseFiles("./event_summary.tpl")
-		
+		}).ParseFiles(templateFilePath)
+
 		if err != nil {
 			return err
 		}
