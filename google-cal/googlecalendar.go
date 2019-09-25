@@ -100,13 +100,19 @@ func (cal *GoogleCalendar) ListEvents(calID string, startDate time.Time, endTime
 
 	events := make([]*Event, 0, len(gEvents.Items))
 	for _, event := range gEvents.Items {
-		start, err := time.Parse(time.RFC3339, event.Start.DateTime)
-		if err != nil {
-			return nil, err
+		var start time.Time
+		if event.Start != nil {
+			start, err = time.Parse(time.RFC3339, event.Start.DateTime)
+			if err != nil {
+				return nil, err
+			}
 		}
-		end, err := time.Parse(time.RFC3339, event.End.DateTime)
-		if err != nil {
-			return nil, err
+		var end time.Time
+		if event.End != nil {
+			end, err = time.Parse(time.RFC3339, event.End.DateTime)
+			if err != nil {
+				return nil, err
+			}
 		}
 		events = append(events, &Event{
 			Summary:  event.Summary,
