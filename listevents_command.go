@@ -1,8 +1,7 @@
 package main
 
 import (
-	"fmt"
-	"io"
+	"html/template"
 	"os"
 	"sort"
 	"strings"
@@ -10,8 +9,8 @@ import (
 
 	"github.com/shouji-kazuo/cliopts"
 	"github.com/shouji-kazuo/gocal/google-cal"
-	calendar "google.golang.org/api/calendar/v3"
 	cli "gopkg.in/urfave/cli.v2"
+	
 )
 
 var listEventsCommand = &cli.Command{
@@ -96,7 +95,7 @@ var listEventsCommand = &cli.Command{
 				if err != nil {
 					return err
 				}
-			}
+			} 
 		}
 		events, err := cal.ListEvents(calendarName, startDate, endDate)
 		if err != nil {
@@ -105,19 +104,25 @@ var listEventsCommand = &cli.Command{
 		sort.Slice(events, func(i, j int) bool {
 			return events[i].Start.Before(events[j].Start)
 		})
-		for _, event := range events {
-			showEventSummary(event, os.Stdout)
+
+		templateDataMap := map[string][]*googlecalendar.Event{
+			"Events": events,
+		}
+		eventOutputTemplate, err := template.New("event_summary.tpl").Funcs(template.FuncMap{
+			"formatDate": func(date time.Time, format string) string {
+				return date.Format(format)
+			},
+		}).ParseFiles("./event_summary.tpl")
+		
+		if err != nil {
+			return err
+		}
+
+		err = eventOutputTemplate.Execute(os.Stdout, templateDataMap)
+		if err != nil {
+			return err
 		}
 
 		return nil
 	},
-}
-
-func showEventSummary(event *googlecalendar.Event, out io.Writer) error {
-	fmt.Fprintf(out, "%s\t%s\t%s\t%s\n", event.Start.Format(timeLayout), event.End.Format(timeLayout), event.Summary, event.Location)
-	return nil
-}
-
-func showEventDetail(event *calendar.Event, out io.Writer) error {
-	return nil
 }
