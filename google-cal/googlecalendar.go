@@ -90,10 +90,10 @@ func (cal *GoogleCalendar) ListCalendars() (*calendar.CalendarList, error) {
 	return cal.client.CalendarList.List().Do()
 }
 
-func (cal *GoogleCalendar) ListEvents(calID string, startDate time.Time, endTime time.Time) ([]*Event, error) {
+func (cal *GoogleCalendar) ListEvents(calID string, startDate time.Time, endTime time.Time, singleEvents bool) ([]*Event, error) {
 	startDateRFC3339 := startDate.Format(time.RFC3339)
 	endDateRFC3339 := endTime.Format(time.RFC3339)
-	gEvents, err := cal.client.Events.List(calID).TimeMin(startDateRFC3339).TimeMax(endDateRFC3339).Do()
+	gEvents, err := cal.client.Events.List(calID).TimeMin(startDateRFC3339).TimeMax(endDateRFC3339).SingleEvents(singleEvents).Do()
 	if err != nil {
 		return nil, err
 	}

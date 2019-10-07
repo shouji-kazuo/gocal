@@ -49,6 +49,13 @@ var listEventsCommand = &cli.Command{
 			Usage: "set event list output template file path.",
 			Value: "./daily_event_list.tmpl",
 		},
+		&cli.BoolFlag{
+			Name: "single-event",
+			Usage: "set whether show recurring events as single-event." +
+				"if recurring event partially removed between \"start\" and \"end\"," +
+				"and assing \"true\" to this flag, then partially removed event does not appear.",
+			Value: true,
+		},
 	},
 	Action: func(ctx *cli.Context) error {
 		credentialPath := ctx.String(argCredentialJSONPath)
@@ -102,7 +109,7 @@ var listEventsCommand = &cli.Command{
 				}
 			}
 		}
-		events, err := cal.ListEvents(calendarName, startDate, endDate)
+		events, err := cal.ListEvents(calendarName, startDate, endDate, ctx.Bool("single-event"))
 		if err != nil {
 			return err
 		}
