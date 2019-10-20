@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/shouji-kazuo/cliopts"
-	"github.com/shouji-kazuo/gocal/google-cal"
+	"github.com/shouji-kazuo/gocal/pkg/gocal"
 	cli "gopkg.in/urfave/cli.v2"
 )
 
@@ -86,7 +86,7 @@ var listEventsCommand = &cli.Command{
 			return err
 		}
 
-		cal, err := googlecalendar.New(tokenJSONPath, credentialPath)
+		cal, err := gocal.New(tokenJSONPath, credentialPath)
 		if err != nil {
 			return err
 		}
@@ -117,7 +117,7 @@ var listEventsCommand = &cli.Command{
 			return events[i].Start.Before(events[j].Start)
 		})
 
-		templateDataMap := map[string][]*googlecalendar.Event{
+		templateDataMap := map[string][]*gocal.Event{
 			"Events": events,
 		}
 

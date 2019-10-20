@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/shouji-kazuo/cliopts"
-	"github.com/shouji-kazuo/gocal/google-cal"
+	"github.com/shouji-kazuo/gocal/pkg/gocal"
 	cli "gopkg.in/urfave/cli.v2"
 )
 
@@ -106,7 +106,7 @@ var addCommand = &cli.Command{
 			return err
 		}
 
-		cal, err := googlecalendar.New(tokenJSONPath, credentialPath)
+		cal, err := gocal.New(tokenJSONPath, credentialPath)
 		if err != nil {
 			return err
 		}
@@ -121,7 +121,7 @@ var addCommand = &cli.Command{
 			return err
 		}
 
-		event := googlecalendar.CreateEvent(eventTitle, eventLocation, startTime, endTime)
+		event := gocal.CreateEvent(eventTitle, eventLocation, startTime, endTime)
 		added, err := cal.AddEvents(calendarName, event)
 		if err != nil {
 			return err

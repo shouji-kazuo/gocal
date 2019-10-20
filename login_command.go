@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 
 	"github.com/shouji-kazuo/gocal/cliutil"
-	"github.com/shouji-kazuo/gocal/google-cal"
+	"github.com/shouji-kazuo/gocal/pkg/gocal"
 
 	"github.com/pkg/errors"
 
@@ -41,7 +41,7 @@ var loginCommand = &cli.Command{
 				"3.get OAuth client ID as JSON file from https://console.developers.google.com/apis/credentials \n" +
 				"4.specify credential file path to \"credential\" flag.")
 		}
-		oauth2Token, err := googlecalendar.Auth(ctx.String(argCredentialJSONPath), os.Stdin, os.Stdout)
+		oauth2Token, err := gocal.Auth(ctx.String(argCredentialJSONPath), os.Stdin, os.Stdout)
 		if err != nil {
 			return errors.Wrap(err, "Unable to authorizate.")
 		}
@@ -95,7 +95,7 @@ var loginCommand = &cli.Command{
 			}
 		}()
 
-		if err = googlecalendar.SaveToken(oauth2Token, tokenFile); err != nil {
+		if err = gocal.SaveToken(oauth2Token, tokenFile); err != nil {
 			return errors.Wrap(err, "Unable to save oauth2 token.")
 		}
 		return nil

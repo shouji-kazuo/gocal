@@ -5,7 +5,7 @@ import (
 	"sort"
 
 	"github.com/shouji-kazuo/cliopts"
-	"github.com/shouji-kazuo/gocal/google-cal"
+	"github.com/shouji-kazuo/gocal/pkg/gocal"
 	cli "gopkg.in/urfave/cli.v2"
 )
 
@@ -43,7 +43,7 @@ var listCalendarsCommand = &cli.Command{
 			return err
 		}
 
-		cal, err := googlecalendar.New(tokenJSONPath, credentialPath)
+		cal, err := gocal.New(tokenJSONPath, credentialPath)
 		if err != nil {
 			return err
 		}
