@@ -1,4 +1,4 @@
-gocal
+./gocal
 build/
 *.json
 
