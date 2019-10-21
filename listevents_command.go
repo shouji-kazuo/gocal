@@ -155,11 +155,6 @@ var listEventsCommand = &cli.Command{
 			}
 			fmt.Fprintln(os.Stdout, string(line))
 		}
-		content, err := ioutil.ReadAll(reader)
-		if err != nil {
-			return err
-		}
-		fmt.Fprint(os.Stdout, content)
 
 		return nil
 	},
