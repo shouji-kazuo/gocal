@@ -1,3 +1,39 @@
-{{- range $event := .Events }}
-{{ formatDate $event.Start "01/02 15:04"}} ～ {{ formatDate $event.End "15:04" }}   {{ $event.Summary -}}
-{{- end }}
+package tmpl
+
+import (
+    "bytes"
+    "io"
+    "time"
+    "sort"
+    "strings"
+    "github.com/shouji-kazuo/gocal/pkg/gocal"
+)
+
+const (
+    dateFormat = "01/02 15:04"
+    timeOnlyFormat = "15:04"
+)
+
+func ListEvents(events []*gocal.Event) (io.Reader, error) {
+    // sort events.
+    sort.Slice(events, func(i, j int) bool {
+        return strings.Compare(events[i].Summary, events[j].Summary) <= 0 &&
+            events[i].Start.Before(events[j].Start)
+    })
+
+    // output events to destination.
+    writer := bytes.NewBufferString("")
+    for _, event := range events {
+        _, err := writer.WriteString(formatDate(event.Start, dateFormat) + " ～ " + formatDate(event.End, timeOnlyFormat) + "\t" + event.Summary + "\n")
+        if err != nil {
+            return nil, err
+        }
+    }
+
+    // create reader, and return it.
+    return strings.NewReader(writer.String())
+}
+
+func formatDate(date time.Time, format string) string {
+	return date.Format(format)
+}

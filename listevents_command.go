@@ -1,13 +1,17 @@
 package main
 
 import (
-	"html/template"
+	"bufio"
+	"fmt"
+	"io"
+	"io/ioutil"
 	"os"
-	"path/filepath"
-	"sort"
+	"reflect"
 	"strings"
 	"time"
 
+	"github.com/containous/yaegi/interp"
+	"github.com/containous/yaegi/stdlib"
 	"github.com/shouji-kazuo/cliopts"
 	"github.com/shouji-kazuo/gocal/pkg/gocal"
 	cli "gopkg.in/urfave/cli.v2"
@@ -113,29 +117,49 @@ var listEventsCommand = &cli.Command{
 		if err != nil {
 			return err
 		}
-		sort.Slice(events, func(i, j int) bool {
-			return events[i].Start.Before(events[j].Start)
+
+		yaegiTemplatePath := ctx.String("template")
+		src, err := ioutil.ReadFile(yaegiTemplatePath)
+		if err != nil {
+			return err
+		}
+
+		interp := interp.New(interp.Options{})
+		interp.Use(stdlib.Symbols)
+		interp.Use(map[string]map[string]reflect.Value{
+			"github.com/shouji-kazuo/gocal/pkg/gocal": map[string]reflect.Value{
+				"GoogleCalendar": reflect.ValueOf((*gocal.GoogleCalendar)(nil)),
+				"Event":          reflect.ValueOf((*gocal.Event)(nil)),
+			},
 		})
 
-		templateDataMap := map[string][]*gocal.Event{
-			"Events": events,
-		}
-
-		templateFilePath := ctx.String("template")
-		eventOutputTemplate, err := template.New(filepath.Base(templateFilePath)).Funcs(template.FuncMap{
-			"formatDate": func(date time.Time, format string) string {
-				return date.Format(format)
-			},
-		}).ParseFiles(templateFilePath)
-
+		_, err = interp.Eval(string(src))
 		if err != nil {
 			return err
 		}
 
-		err = eventOutputTemplate.Execute(os.Stdout, templateDataMap)
+		v, err := interp.Eval(`tmpl.ListEvents`)
+		listEvents := v.Interface().(func([]*gocal.Event) (io.Reader, error))
+		reader, err := listEvents(events)
 		if err != nil {
 			return err
 		}
+
+		bufreader := bufio.NewReader(reader)
+		for {
+			//TODO 手抜き．
+			line, _, err := bufreader.ReadLine()
+			if err == io.EOF {
+				fmt.Fprintln(os.Stdout, string(line))
+				break
+			}
+			fmt.Fprintln(os.Stdout, string(line))
+		}
+		content, err := ioutil.ReadAll(reader)
+		if err != nil {
+			return err
+		}
+		fmt.Fprint(os.Stdout, content)
 
 		return nil
 	},
