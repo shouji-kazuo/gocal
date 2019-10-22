@@ -147,7 +147,7 @@ var listEventsCommand = &cli.Command{
 
 		bufreader := bufio.NewReader(reader)
 		for {
-			//TODO 手抜き．
+			//TODO 手抜き．本当は isPrefix(第2戻り値) == true の時を考慮しないといけない．が，多分すごくめんどくさい．
 			line, _, err := bufreader.ReadLine()
 			if err == io.EOF {
 				fmt.Fprintln(os.Stdout, string(line))

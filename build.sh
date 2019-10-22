@@ -1,4 +1,6 @@
-#1/bin/bash
+#!/bin/bash
+
+set -e -u
 package="$(basename $(pwd))"
 
 if [ -e build ]; then
